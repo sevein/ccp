@@ -84,10 +84,11 @@ func (r *ClientModulesReport) generate(ctx context.Context) (*dagger.File, error
 }
 
 type ClientModule struct {
-	Name     string
-	Size     string
-	Callable bool
-	contents []byte
+	Name       string
+	Size       string
+	Callable   bool
+	Concurrent bool
+	contents   []byte
 }
 
 func analyzeModule(ctx context.Context, file *dagger.File) (*ClientModule, error) {
@@ -98,6 +99,10 @@ func analyzeModule(ctx context.Context, file *dagger.File) (*ClientModule, error
 
 	if bytes.Contains(report.contents, []byte("def call(jobs")) {
 		report.Callable = true
+	}
+
+	if bytes.Contains(report.contents, []byte("def concurrent_instances(")) {
+		report.Concurrent = true
 	}
 
 	return report, nil
