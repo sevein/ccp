@@ -8,6 +8,7 @@ also limited unit testing in create_mets_v2 (AIP METS generation).
 
 import os
 from itertools import chain
+from unittest import mock
 
 import pytest
 
@@ -219,8 +220,9 @@ def directories(transfer, sip):
 
 
 @pytest.fixture
-def pid_web_service(mocker):
-    mocker.patch("requests.post", return_value=mocker.Mock(status_code=200))
+def pid_web_service():
+    with mock.patch("requests.post", return_value=mock.Mock(status_code=200)):
+        yield
 
 
 @pytest.mark.django_db
@@ -243,8 +245,18 @@ def test_bind_pids_no_config(
 
 
 @pytest.mark.django_db
+@mock.patch("worker.clientScripts.bind_pids._get_unique_acc_no")
+@mock.patch("worker.clientScripts.bind_pids._validate_handle_server_config")
 def test_bind_pids(
-    sip, settings, transfer, files, directories, mocker, mcp_job, pid_web_service
+    _get_unique_acc_no,
+    _validate_handle_server_config,
+    sip,
+    settings,
+    transfer,
+    files,
+    directories,
+    mcp_job,
+    pid_web_service,
 ):
     """Test the bind_pids function end-to-end and ensure that the
     result is that which is anticipated.
@@ -254,8 +266,8 @@ def test_bind_pids(
     """
     # We might want to return a unique accession number, but we can also
     # test here using the package UUID, the function's fallback position.
-    mocker.patch.object(bind_pids, "_get_unique_acc_no", return_value=str(sip.uuid))
-    mocker.patch.object(bind_pids, "_validate_handle_server_config", return_value=None)
+    _get_unique_acc_no.return_value = str(sip.uuid)
+    _validate_handle_server_config.return_value = None
 
     # Primary entry-point for the bind_pids microservice job.
     bind_pids.main(mcp_job, str(sip.uuid), "")
@@ -395,8 +407,28 @@ def test_bind_pid_no_settings(
 
 
 @pytest.mark.django_db
+@mock.patch.object(
+    DeclarePIDs,
+    "_retrieve_identifiers_path",
+    return_value=os.path.join(
+        THIS_DIR, "fixtures", "pid_declaration", "identifiers.json"
+    ),
+)
+@mock.patch("worker.clientScripts.bind_pids._get_unique_acc_no")
+@mock.patch(
+    "worker.clientScripts.bind_pids._validate_handle_server_config", return_value=None
+)
 def test_pid_declaration(
-    sip, settings, transfer, files, directories, mocker, mcp_job, pid_web_service
+    _validate_handle_server_config,
+    _get_unique_acc_no,
+    _retrieve_identifiers_path,
+    sip,
+    settings,
+    transfer,
+    files,
+    directories,
+    mcp_job,
+    pid_web_service,
 ):
     """Test that the overall functionality of the PID declaration functions
     work as expected.
@@ -405,13 +437,6 @@ def test_pid_declaration(
     example_uri = "https://éxample.com/"
     all_identifier_types = (
         TRADITIONAL_IDENTIFIERS + BOUND_IDENTIFIER_TYPES + DECLARED_IDENTIFIER_TYPES
-    )
-    mocker.patch.object(
-        DeclarePIDs,
-        "_retrieve_identifiers_path",
-        return_value=os.path.join(
-            THIS_DIR, "fixtures", "pid_declaration", "identifiers.json"
-        ),
     )
     DeclarePIDs(mcp_job).pid_declaration(unit_uuid=sip.uuid, sip_directory="")
     # Declare PIDs allows us to assign PIDs to very specific objects in a
@@ -435,8 +460,7 @@ def test_pid_declaration(
                 assert example_uri in value, "Example URI type not preserved"
             if key == PID_ULID:
                 assert len(example_ulid) == len(value)
-    mocker.patch.object(bind_pids, "_get_unique_acc_no", return_value=str(sip.uuid))
-    mocker.patch.object(bind_pids, "_validate_handle_server_config", return_value=None)
+    _get_unique_acc_no.return_value = str(sip.uuid)
     # Primary entry-point for the bind_pids microservice job.
     bind_pids.main(mcp_job, str(sip.uuid), "")
     for mdl in chain((sip_mdl,), dir_mdl):
@@ -483,7 +507,7 @@ def test_pid_declaration(
 
 @pytest.mark.django_db
 def test_pid_declaration_exceptions(
-    sip, settings, transfer, files, directories, mocker, mcp_job
+    sip, settings, transfer, files, directories, mcp_job
 ):
     """Ensure that the PID declaration feature exits when the JSOn cannot
     be loaded.
@@ -496,17 +520,16 @@ def test_pid_declaration_exceptions(
     assert (
         "No identifiers.json file found" in mcp_job.get_stderr().strip()
     ), "Expecting no identifiers.json file, but got something else"
-    # Test behavior when identifiers.json is badly formatted.
-    bad_identifiers_loc = os.path.join(
-        THIS_DIR, "fixtures", "pid_declaration", "bad_identifiers.json"
-    )
-    mocker.patch.object(
-        DeclarePIDs, "_retrieve_identifiers_path", return_value=bad_identifiers_loc
-    )
-    try:
-        DeclarePIDs(mcp_job).pid_declaration(unit_uuid="", sip_directory="")
-    except DeclarePIDsException as err:
-        json_error = "Expecting value: line 15 column 1 (char 336)"
-        assert json_error in str(
-            err
-        ), "Error message something other than anticipated for invalid JSON"
+    with mock.patch(
+        "worker.clientScripts.pid_declaration.DeclarePIDs._retrieve_identifiers_path",
+        return_value=os.path.join(
+            THIS_DIR, "fixtures", "pid_declaration", "bad_identifiers.json"
+        ),
+    ):
+        try:
+            DeclarePIDs(mcp_job).pid_declaration(unit_uuid="", sip_directory="")
+        except DeclarePIDsException as err:
+            json_error = "Expecting value: line 15 column 1 (char 336)"
+            assert json_error in str(
+                err
+            ), "Error message something other than anticipated for invalid JSON"

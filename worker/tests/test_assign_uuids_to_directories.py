@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 
 from worker.client.job import Job
@@ -22,8 +24,8 @@ def transfer_directory_path(transfer_directory_path):
 
 
 @pytest.mark.django_db
-def test_main(mocker, transfer, transfer_directory_path):
-    job = mocker.Mock(spec=Job)
+def test_main(transfer, transfer_directory_path):
+    job = mock.Mock(spec=Job)
     include_dirs = True
 
     # Verify there are no directories.

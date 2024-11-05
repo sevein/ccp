@@ -1,3 +1,5 @@
+from unittest import mock
+
 import pytest
 from django.utils import timezone
 
@@ -8,8 +10,8 @@ from worker.main.models import File
 
 
 @pytest.mark.django_db
-def test_main(mocker, tmp_path, sip, sip_directory_path):
-    job = mocker.Mock(spec=Job)
+def test_main(tmp_path, sip, sip_directory_path):
+    job = mock.Mock(spec=Job)
     date = timezone.now()
 
     access_directory = tmp_path / "access"

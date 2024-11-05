@@ -667,9 +667,9 @@ class TestParseFiles(TestCase):
 
 
 @pytest.mark.django_db
-def test_main_sets_aip_reingest_type(mocker, sip):
-    mocker.patch("worker.clientScripts.parse_mets_to_db.os")
-    mocker.patch("worker.clientScripts.parse_mets_to_db.etree")
+@mock.patch("worker.clientScripts.parse_mets_to_db.os")
+@mock.patch("worker.clientScripts.parse_mets_to_db.etree")
+def test_main_sets_aip_reingest_type(etree, os, sip):
     job = None
     assert not models.SIP.objects.filter(uuid=sip.uuid, sip_type="AIP-REIN").exists()
 
@@ -679,9 +679,9 @@ def test_main_sets_aip_reingest_type(mocker, sip):
 
 
 @pytest.mark.django_db
-def test_main_unsets_partial_reingest_flag(mocker, sip):
-    mocker.patch("worker.clientScripts.parse_mets_to_db.os")
-    mocker.patch("worker.clientScripts.parse_mets_to_db.etree")
+@mock.patch("worker.clientScripts.parse_mets_to_db.os")
+@mock.patch("worker.clientScripts.parse_mets_to_db.etree")
+def test_main_unsets_partial_reingest_flag(etree, os, sip):
     job = None
     sip.set_partial_reingest()
     assert sip.is_partial_reingest()
