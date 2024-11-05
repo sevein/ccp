@@ -23,9 +23,7 @@ Currently, we only support Kubernetes deployments using the [prod overlay] from
 the [deploy branch]. To set up CCPv2 for testing purposes, use the following
 command:
 
-```
-kubectl apply -k overlays/prod
-```
+    kubectl apply -k overlays/prod
 
 > [!NOTE]
 > We are working to make deployments more accessible. Future installation
