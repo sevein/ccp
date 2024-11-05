@@ -29,7 +29,6 @@ from worker.utils import fileOperations
 
 
 def main(job):
-    # --sipUUID "%SIPUUID%" --sipDirectory "%SIPDirectory%" --filePath "%relativeLocation%"
     parser = OptionParser()
     parser.add_option("-s", "--sipUUID", action="store", dest="sipUUID", default="")
     parser.add_option(

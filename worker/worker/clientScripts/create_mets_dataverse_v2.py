@@ -25,7 +25,6 @@ import metsrw
 from worker.utils import archivematicaFunctions
 from worker.utils.custom_handlers import get_script_logger
 
-# Create a module level logger.
 logger = get_script_logger("archivematica.worker.createMETSDataverse")
 
 

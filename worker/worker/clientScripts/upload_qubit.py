@@ -35,7 +35,6 @@ from django.db import transaction
 from worker.main import models
 from worker.utils.custom_handlers import get_script_logger
 
-# moved after django.setup()
 logger = get_script_logger("archivematica.upload.qubit")
 
 PREFIX = "[uploadDIP]"
